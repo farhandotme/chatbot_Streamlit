@@ -1,0 +1,17 @@
+groq
+python-dotenv
+requests
+fastapi
+uvicorn
+pydantic
+langchain
+langchain-community
+langchain-core
+langchain-text-splitters
+chromadb
+faiss-cpu
+tiktoken
+pypdf
+unstructured
+sentence-transformers
+langchain-groq
