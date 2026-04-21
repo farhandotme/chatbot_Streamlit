@@ -1,50 +1,31 @@
-import streamlit as st
+from langchain_groq import ChatGroq
 from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 load_dotenv()
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from langchain_groq import ChatGroq
-
-# Page config
-st.set_page_config(page_title="AI Chatbot", page_icon="🤖", layout="centered")
-
-st.title("🤖 AI Chatbot - Ask me anything")
-st.markdown("Ask anything. Type **exit** to stop.")
-
-# Initialize model (same as your code)
 model = ChatGroq(model="llama-3.1-8b-instant")
 
-# Initialize session state
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        SystemMessage(content="You are a expert AI assistent that solves user query")
-    ]
-    st.session_state.chat_history = []
+print("Choose Your Response Mode...")
+print("Choose 1 for Angry Mode")
+print("Choose 2 for Funny Mode")
+print("Choose 3 for Sad Mode")
+print("----------choose----------")
+modeInput = int(input("Enter the Mode: "))
 
-# Chat input
-user_input = st.chat_input("Type your message...")
+match modeInput:
+    case 1:
+        mode = "You are a Angry Ai Agent who reply with Angry Tone..."
+    case 2:
+        mode = "You are a Funny Ai Agent Who reply Funny way...."
+    case 3:
+        mode = "You are a sad Ai agent who reply sadly"
+messages = [SystemMessage(content=mode)]
 
-if user_input:
-    if user_input.lower() == "exit":
-        st.stop()
-
-    # Add user message (same logic)
-    st.session_state.messages.append(HumanMessage(content=user_input))
-    st.session_state.chat_history.append(("You", user_input))
-
-    # Get response (same logic)
-    response = model.invoke(st.session_state.messages)
-
-    # Store response
-    st.session_state.messages.append(AIMessage(content=response.content))
-    st.session_state.chat_history.append(("Bot", response.content))
-
-# Display chat
-for role, msg in st.session_state.chat_history:
-    if role == "You":
-        with st.chat_message("user"):
-            st.markdown(msg)
-    else:
-        with st.chat_message("assistant"):
-            st.markdown(msg)
+while True:
+    query = input("You: ")
+    messages.append(HumanMessage(content=query))
+    if query == "exit":
+        break
+    response = model.invoke(messages)
+    print("Bot: ", response.content)
