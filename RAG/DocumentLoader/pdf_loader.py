@@ -10,4 +10,4 @@ loader = PyPDFLoader(file_path)
 data = loader.load()
 
 
-print(data[0].page_content)
+print(len(data))
