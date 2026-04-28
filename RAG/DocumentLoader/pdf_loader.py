@@ -7,6 +7,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_qdrant import Qdrant
+from qdrant_client import QdrantClient
 from langchain_groq import ChatGroq
 
 model = ChatGroq(model="llama-3.1-8b-instant")
@@ -31,31 +32,44 @@ prompt = ChatPromptTemplate(
     ]
 )
 
+client = QdrantClient(url="http://localhost:6333")
+collections = client.get_collections().collections
+collection_exists = any(c.name == "michael_data" for c in collections)
 
-# the splitter
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=100,
-)
 
-# loading the file
-file_path = (
-    "/home/farhan/Desktop/yt-genai/sharians-yt-genai/RAG/DocumentLoader/michael.pdf"
-)
-loader = PyPDFLoader(file_path)
+if collection_exists:
+    print("getting existing data.....")
+    vactorstore = Qdrant.from_existing_collection(
+        embedding=embeddings,
+        url="http://localhost:6333",
+        collection_name="michael_data",
+    )
+else:
+    print("Storing the data")
+    # the splitter
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=100,
+    )
 
-data = loader.load()
+    # loading the file
+    file_path = (
+        "/home/farhan/Desktop/yt-genai/sharians-yt-genai/RAG/DocumentLoader/michael.pdf"
+    )
+    loader = PyPDFLoader(file_path)
 
-chunks = splitter.split_documents(data)
-print("Total Chunks : ", len(chunks))
+    data = loader.load()
 
-# created the vactor store
-vactorstore = Qdrant.from_documents(
-    documents=chunks,
-    embedding=embeddings,
-    url="http://localhost:6333",
-    collection_name="michael_data",
-)
+    chunks = splitter.split_documents(data)
+    print("Total Chunks : ", len(chunks))
+
+    # created the vactor store
+    vactorstore = Qdrant.from_documents(
+        documents=chunks,
+        embedding=embeddings,
+        url="http://localhost:6333",
+        collection_name="michael_data",
+    )
 
 similar_datas = vactorstore.similarity_search(user_query, k=2)
 
