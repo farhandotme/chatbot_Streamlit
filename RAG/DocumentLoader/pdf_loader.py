@@ -71,9 +71,12 @@ else:
         collection_name="michael_data",
     )
 
-similar_datas = vactorstore.similarity_search(user_query, k=2)
+# similar_datas = vactorstore.similarity_search(user_query, k=2)
+retriver = vactorstore.as_retriever(search_kwargs={"k": 2})
 
-context = "\n\n".join([doc.page_content for doc in similar_datas])
+relevent_docs = retriver.invoke(user_query)
+
+context = "\n\n".join([doc.page_content for doc in relevent_docs])
 
 
 finalPrompt = prompt.invoke({"context": context, "query": user_query})
