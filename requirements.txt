@@ -53,9 +53,9 @@ pexpect==4.9.0
 pillow==10.2.0
 proton-core==0.7.3
 proton-keyring-linux==0.2.1
-proton-vpn-api-core==5.0.1
-proton-vpn-daemon==0.13.6
-proton-vpn-gtk-app==4.15.3
+proton-vpn-api-core==5.1.2
+proton-vpn-daemon==0.13.7
+proton-vpn-gtk-app==4.16.1
 psutil==5.9.8
 ptyprocess==0.7.0
 pycairo==1.25.1
