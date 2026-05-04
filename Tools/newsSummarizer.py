@@ -11,7 +11,7 @@ tool = TavilySearch(max_results=3)
 
 prompt = ChatPromptTemplate.from_template("""
 You are a helpful AI Assistant.
-Summarize the following news into clear bullet points:
+Summarize the following news into clear bullet points and make a good summary that is readable by human and easy to read:
 
 {news}
 """)
