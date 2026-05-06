@@ -1,5 +1,6 @@
 import os
 import requests
+import streamlit as st
 from dotenv import load_dotenv
 
 from langchain_tavily import TavilySearch
@@ -7,13 +8,31 @@ from langchain.tools import tool
 from langchain_mistralai import ChatMistralAI
 from langchain_core.messages import HumanMessage, ToolMessage
 
-from rich import print
-
+# =========================
 # Load Environment Variables
+# =========================
 load_dotenv()
 
 
+# =========================
+# Streamlit Page Config
+# =========================
+st.set_page_config(page_title="City Intelligence System", page_icon="🌍", layout="wide")
+
+
+# =========================
+# Session State
+# =========================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+
+# =========================
 # Weather Tool
+# =========================
 @tool
 def get_weather_data(city: str) -> str:
     """Get current weather data for a city."""
@@ -52,7 +71,9 @@ def get_weather_data(city: str) -> str:
         return f"Weather API Error: {str(e)}"
 
 
+# =========================
 # Tavily News Tool
+# =========================
 tavily_client = TavilySearch(max_results=3)
 
 
@@ -83,92 +104,118 @@ def get_news(city: str) -> str:
         return f"Tavily Error: {str(e)}"
 
 
+# =========================
 # AI Model
+# =========================
 model = ChatMistralAI(model="mistral-small")
 
 
-# Tools Dictionary
+# =========================
+# Tools
+# =========================
 tools = {
     "get_weather_data": get_weather_data,
     "get_news": get_news,
 }
 
 
-# Bind Tools to Model
+# =========================
+# Bind Tools
+# =========================
 model_with_tools = model.bind_tools([get_weather_data, get_news])
 
 
-# Agent Memory
-messages = []
+# =========================
+# UI
+# =========================
+st.title("🌍 City Intelligence System")
+st.markdown("Get Weather & Latest News of Any City")
 
 
-# Start Application
-print("[bold green]City Intelligence System Started...[/bold green]")
-print("[yellow]Type 'exit' to quit[/yellow]\n")
+# =========================
+# Display Chat History
+# =========================
+for role, content in st.session_state.chat_history:
+
+    with st.chat_message(role):
+        st.markdown(content)
 
 
-# Main Loop
-while True:
+# =========================
+# Chat Input
+# =========================
+user_input = st.chat_input("Ask something...")
 
-    user_input = input("You : ")
 
-    if user_input.lower() == "exit":
-        print("\n[red]Exiting Application...[/red]")
-        break
+# =========================
+# Main Logic
+# =========================
+if user_input:
+
+    # Show User Message
+    st.session_state.chat_history.append(("user", user_input))
+
+    with st.chat_message("user"):
+        st.markdown(user_input)
 
     # Add Human Message
-    messages.append(HumanMessage(content=user_input))
+    st.session_state.messages.append(HumanMessage(content=user_input))
 
-    # Agent Loop
-    while True:
+    with st.chat_message("assistant"):
 
-        # Model Response
-        result = model_with_tools.invoke(messages)
+        response_placeholder = st.empty()
 
-        # Save AI Message
-        messages.append(result)
+        final_response = ""
 
-        # Check Tool Calls
-        if hasattr(result, "tool_calls") and result.tool_calls:
+        while True:
 
-            for tool_call in result.tool_calls:
+            result = model_with_tools.invoke(st.session_state.messages)
 
-                tool_name = tool_call["name"]
+            st.session_state.messages.append(result)
 
-                print(f"\n[cyan]Tool Requested:[/cyan] {tool_name}")
+            # Tool Calls
+            if hasattr(result, "tool_calls") and result.tool_calls:
 
-                confirm = input(f"Do you want to execute '{tool_name}'? (Y/N): ")
+                for tool_call in result.tool_calls:
 
-                # Human in the loop
-                if confirm.lower() in ["n", "no"]:
+                    tool_name = tool_call["name"]
 
-                    print("[red]Tool Execution Denied[/red]\n")
-                    break
+                    st.info(f"Calling Tool: {tool_name}")
 
-                try:
-                    # Execute Tool
-                    tool_result = tools[tool_name].invoke(tool_call["args"])
+                    try:
 
-                    print("\n[green]Tool Result:[/green]")
-                    print(tool_result)
+                        tool_result = tools[tool_name].invoke(tool_call["args"])
 
-                    # Add Tool Message
-                    messages.append(
-                        ToolMessage(content=tool_result, tool_call_id=tool_call["id"])
-                    )
+                        st.success(f"{tool_name} executed successfully")
 
-                except Exception as e:
+                        st.code(tool_result)
 
-                    error_message = f"Tool Execution Error: {str(e)}"
+                        st.session_state.messages.append(
+                            ToolMessage(
+                                content=tool_result, tool_call_id=tool_call["id"]
+                            )
+                        )
 
-                    messages.append(
-                        ToolMessage(content=error_message, tool_call_id=tool_call["id"])
-                    )
+                    except Exception as e:
 
-            # Continue agent loop after tool execution
-            continue
+                        error_message = f"Tool Error: {str(e)}"
 
-        else:
-            # Final AI Response
-            print(f"\n[bold blue]AI:[/bold blue] {result.content}\n")
-            break
+                        st.error(error_message)
+
+                        st.session_state.messages.append(
+                            ToolMessage(
+                                content=error_message, tool_call_id=tool_call["id"]
+                            )
+                        )
+
+                continue
+
+            else:
+
+                final_response = result.content
+
+                response_placeholder.markdown(final_response)
+
+                st.session_state.chat_history.append(("assistant", final_response))
+
+                break
